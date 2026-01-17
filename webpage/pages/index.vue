@@ -17,7 +17,7 @@
 onMounted(() => {
   setTimeout(() => {
     navigateTo('/register')
-  }, 5000)
+  }, 2000)
 })
 </script>
 
