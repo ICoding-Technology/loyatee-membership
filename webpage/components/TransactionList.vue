@@ -27,6 +27,48 @@ const transactions = [
         title: 'Earned point',
         date: '12 July 2023',
         amount: 20
+    },
+    {
+        id: 1,
+        title: 'Earned point',
+        date: '12 July 2023',
+        amount: 20
+    },
+    {
+        id: 1,
+        title: 'Earned point',
+        date: '12 July 2023',
+        amount: 20
+    },
+    {
+        id: 1,
+        title: 'Earned point',
+        date: '12 July 2023',
+        amount: 20
+    },
+    {
+        id: 1,
+        title: 'Earned point',
+        date: '12 July 2023',
+        amount: 20
+    },
+    {
+        id: 1,
+        title: 'Earned point',
+        date: '12 July 2023',
+        amount: 20
+    },
+    {
+        id: 1,
+        title: 'Earned point',
+        date: '12 July 2023',
+        amount: 20
+    },
+    {
+        id: 1,
+        title: 'Earned point',
+        date: '12 July 2023',
+        amount: 20
     }
 ]
 </script>

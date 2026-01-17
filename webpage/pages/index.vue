@@ -1,29 +1,84 @@
 <template>
-  <div class="bg-white flex flex-col">
-    <!-- Sticky header at the very top -->
-    <div class="sticky top-0 z-30 bg-white">
-      <Header />
+  <div class="splash-screen">
+    <div class="content">
+      <div class="logo">
+        <img src="/img/logo.svg" alt="Logo" />
+      </div>
+      <div class="loading">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
     </div>
-    <BottomNavigation>
-      <template #home>
-
-        <div class="flex flex-col bg-gray-100">
-          <!-- Membership card scrolls normally under the header -->
-          <MembershipCard />
-
-          <!-- TotalPoint sticks just below the header -->
-          <div class="z-20 bg-white">
-            <TotalPoint :current="200" :total="1000" />
-          </div>
-
-          <!-- Transaction list scrolls behind the sticky sections -->
-          <TransactionList />
-        </div>
-      </template>
-
-      <template #settings>
-        <SettingsMenu />
-      </template>
-    </BottomNavigation>
   </div>
 </template>
+
+<script setup lang="ts">
+onMounted(() => {
+  setTimeout(() => {
+    navigateTo('/register')
+  }, 5000)
+})
+</script>
+
+<style scoped>
+.splash-screen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: #fff;
+}
+
+.content {
+  margin-top: -150px;
+  text-align: center;
+}
+
+.logo {
+  margin-bottom: 50px;
+}
+
+.logo img {
+  width: 120px;
+  height: auto;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  background-color: rgb(56, 119, 207);
+  border-radius: 50%;
+  animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes bounce {
+
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.7;
+  }
+
+  40% {
+    transform: translateY(-20px);
+    opacity: 1;
+  }
+}
+</style>
