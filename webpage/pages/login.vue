@@ -48,6 +48,7 @@ export default {
   justify-content: center;
   background: #ffffff;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .login-container {
@@ -58,6 +59,7 @@ export default {
   flex-direction: column;
   align-items: center;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .logo-section {
@@ -88,7 +90,7 @@ export default {
 .bottom-section {
   margin-top: auto;
   width: 100%;
-  padding-bottom: 20px;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
 }
 
 .btn-outline {

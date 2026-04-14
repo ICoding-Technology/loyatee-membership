@@ -17,7 +17,7 @@
                     <!-- Animated active tab background pill -->
                     <div class="absolute inset-y-1 w-1/2 rounded-full px-5 transition-transform duration-300 ease-out"
                         :style="{ transform: `translateX(${activeIndex * 100}%)` }">
-                        <div class="bg-[#4169E1] h-full w-full rounded-full shadow-md"></div>
+                        <div class="bg-[#E0EDFF] h-full w-full rounded-full"></div>
                     </div>
 
                     <!-- Tabs -->

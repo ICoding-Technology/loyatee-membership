@@ -24,6 +24,7 @@ export default {
   flex-direction: column;
   background: #ffffff;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .form-page-content {
@@ -43,6 +44,6 @@ export default {
 
 .form-page-bottom {
   margin-top: auto;
-  padding-bottom: 20px;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
 }
 </style>
