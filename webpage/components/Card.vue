@@ -1,6 +1,7 @@
 <template>
     <div
-        class="relative w-full aspect-video rounded-[15px] bg-[#4C86E5] shadow-md px-4 py-3 md:px-10 md:py-8 overflow-hidden text-white">
+        class="relative w-full aspect-video rounded-[15px] bg-gradient-to-br from-[#4C86E5] to-[#3B5FD4] shadow-md px-4 py-3 md:px-10 md:py-8 overflow-hidden text-white cursor-pointer"
+        @click="$router.push('/card-detail')">
 
         <!-- Content -->
         <div class="relative z-10 flex h-full flex-col justify-between">

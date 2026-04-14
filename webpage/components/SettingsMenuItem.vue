@@ -6,11 +6,12 @@
   >
     <div class="flex items-center gap-3">
       <div
-        class="flex h-8 w-8 items-center justify-center rounded-full bg-[#E0EDFF]"
+        class="flex h-8 w-8 items-center justify-center rounded-full"
+        :class="danger ? 'bg-red-50' : 'bg-[#E0EDFF]'"
       >
-        <UIcon :name="icon" class="h-4 w-4 text-[#3B82F6]" />
+        <UIcon :name="icon" class="h-4 w-4" :class="danger ? 'text-red-500' : 'text-[#3B82F6]'" />
       </div>
-      <span class="font-medium text-sm text-[#1F2A3C]">{{ label }}</span>
+      <span class="font-semibold text-sm" :class="danger ? 'text-red-500' : 'text-[#1F2A3C]'">{{ label }}</span>
     </div>
 
     <UIcon name="i-heroicons-chevron-right" class="h-4 w-4 text-gray-400" />
@@ -21,9 +22,12 @@
 interface Props {
   label: string;
   icon: string;
+  danger?: boolean;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  danger: false,
+});
 const emit = defineEmits<{ (e: "click"): void }>();
 
 const onClick = () => {

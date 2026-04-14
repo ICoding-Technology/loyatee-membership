@@ -16,7 +16,7 @@
 <script setup lang="ts">
 onMounted(() => {
   setTimeout(() => {
-    navigateTo('/register')
+    navigateTo('/login')
   }, 2000)
 })
 </script>

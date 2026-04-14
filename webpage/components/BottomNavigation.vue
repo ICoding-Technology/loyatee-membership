@@ -17,7 +17,7 @@
                     <!-- Animated active tab background pill -->
                     <div class="absolute inset-y-1 w-1/2 rounded-full px-5 transition-transform duration-300 ease-out"
                         :style="{ transform: `translateX(${activeIndex * 100}%)` }">
-                        <div class="bg-[#E0EDFF] h-full w-full rounded-full"></div>
+                        <div class="bg-[#4169E1] h-full w-full rounded-full shadow-md"></div>
                     </div>
 
                     <!-- Tabs -->
@@ -30,20 +30,26 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import BottomNavItem from './BottomNavItem.vue'
+
+const route = useRoute()
+const router = useRouter()
 
 const tabs = [
     { key: 'home', label: 'Home', icon: 'i-heroicons-home' },
     { key: 'settings', label: 'Settings', icon: 'i-heroicons-cog-6-tooth' }
 ] as const
 
-const activeIndex = ref(0)
+const initialTab = tabs.findIndex(t => t.key === route.query.tab)
+const activeIndex = ref(initialTab >= 0 ? initialTab : 0)
 const activeTabKey = computed(() => tabs[activeIndex.value]?.key ?? 'home')
 
 function selectTab(index: number) {
     if (index === activeIndex.value) return
     activeIndex.value = index
+    router.replace({ query: { ...route.query, tab: tabs[index].key } })
 }
 </script>
 

@@ -1,7 +1,7 @@
 <template>
     <button type="button"
         class="relative z-10 inline-flex items-center justify-center font-semibold px-3 py-3 text-sm transition-colors"
-        :class="active ? 'text-[#3B82F6]' : 'text-gray-500'" @click="$emit('click')">
+        :class="active ? 'text-white' : 'text-gray-500'" @click="$emit('click')">
         <div class="flex items-center justify-center">
             <UIcon :name="icon" class="w-5 h-5 mr-1" />
             <span class="overflow-hidden whitespace-nowrap transition-all duration-200"

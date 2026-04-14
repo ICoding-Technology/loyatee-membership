@@ -11,7 +11,7 @@
           </div>
           <div>
             <h2 class="text-sm font-semibold text-gray-800">Sowattana</h2>
-            <p class="text-gray-500 text-xs">Account ID: 123456</p>
+            <p class="text-gray-500 text-xs">Account ID: <span class="font-number">123456</span></p>
           </div>
         </div>
 
