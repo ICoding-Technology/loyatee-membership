@@ -21,6 +21,8 @@ export default defineNuxtConfig({
         },
       ],
       script: [
+        // Runtime config injected by the API container — must run before app code.
+        { src: "/config.js" },
         { src: "https://accounts.google.com/gsi/client", async: true, defer: true },
       ],
     },

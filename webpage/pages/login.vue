@@ -78,7 +78,7 @@ if (getAuthToken()) navigateTo("/home");
 const router = useRouter();
 const api = useApi();
 const profileStore = useProfileStore();
-const { public: { googleClientId, telegramBotName } } = useRuntimeConfig();
+const { googleClientId, telegramBotName } = useClientConfig();
 
 const phoneNumber = ref("");
 const errorMessage = ref("");

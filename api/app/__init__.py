@@ -1,5 +1,6 @@
+import json
 import os
-from flask import Flask, send_from_directory
+from flask import Flask, Response, send_from_directory
 from flask_cors import CORS
 
 from config import config
@@ -24,11 +25,28 @@ def create_app(config_name=None):
 
     register_blueprints(app)
     register_error_handlers(app)
+    _register_runtime_config(app)
 
     if static_dir:
         _register_spa(app, static_dir)
 
     return app
+
+
+def _register_runtime_config(app):
+    """Serve /config.js so the SPA can read public config injected at runtime
+    (compose env vars), instead of values baked at build time."""
+
+    @app.route("/config.js")
+    def runtime_config():
+        payload = {
+            "googleClientId": os.getenv("GOOGLE_CLIENT_ID", ""),
+            "telegramBotName": os.getenv("TELEGRAM_BOT_NAME", ""),
+        }
+        body = f"window.__APP_CONFIG__={json.dumps(payload)};"
+        resp = Response(body, mimetype="application/javascript")
+        resp.headers["Cache-Control"] = "no-store"
+        return resp
 
 
 def _register_spa(app, static_dir):
