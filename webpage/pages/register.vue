@@ -20,8 +20,8 @@
     <ErrorMessage :message="errorMessage" />
 
     <template #bottom>
-      <Button :disabled="!isValid" @click="handleNext">
-        Get OTP Verification
+      <Button :disabled="!isValid || loading" @click="handleNext">
+        {{ loading ? "Sending..." : "Get OTP Verification" }}
       </Button>
 
       <p class="terms-text">
@@ -32,40 +32,44 @@
   </FormPageLayout>
 </template>
 
-<script lang="ts">
-export default {
-  data() {
-    return {
-      phoneNumber: "",
-      errorMessage: "",
-    };
-  },
-  computed: {
-    isValid(): boolean {
-      return this.phoneNumber.length >= 8;
-    },
-  },
-  methods: {
-    handlePhoneInput() {
-      this.phoneNumber = this.phoneNumber.replace(/\D/g, "").slice(0, 9);
+<script lang="ts" setup>
+if (getAuthToken()) navigateTo("/home");
 
-      if (this.phoneNumber.startsWith("0")) {
-        this.errorMessage = "Phone number cannot start with 0";
-        this.phoneNumber = this.phoneNumber.replace(/^0+/, "");
-      } else {
-        this.errorMessage = "";
-      }
-    },
-    handleNext() {
-      if (this.isValid) {
-        console.log("Phone number submitted:", "+855" + this.phoneNumber);
-        this.$router.push({
-          path: "/otp-verify",
-          query: { phone: this.phoneNumber },
-        });
-      }
-    },
-  },
+const router = useRouter();
+const api = useApi();
+
+const phoneNumber = ref("");
+const errorMessage = ref("");
+const loading = ref(false);
+
+const isValid = computed(() => phoneNumber.value.length >= 8);
+
+const handlePhoneInput = () => {
+  phoneNumber.value = phoneNumber.value.replace(/\D/g, "").slice(0, 9);
+
+  if (phoneNumber.value.startsWith("0")) {
+    errorMessage.value = "Phone number cannot start with 0";
+    phoneNumber.value = phoneNumber.value.replace(/^0+/, "");
+  } else {
+    errorMessage.value = "";
+  }
+};
+
+const handleNext = async () => {
+  if (!isValid.value || loading.value) return;
+  errorMessage.value = "";
+  loading.value = true;
+
+  const fullPhone = "+855" + phoneNumber.value;
+  try {
+    const res = await api.requestOtp(fullPhone);
+    if (res.otp_debug) console.log("[dev] OTP:", res.otp_debug);
+    router.push({ path: "/otp-verify", query: { phone: phoneNumber.value } });
+  } catch (e: any) {
+    errorMessage.value = e?.error || "Could not send OTP. Please try again.";
+  } finally {
+    loading.value = false;
+  }
 };
 </script>
 

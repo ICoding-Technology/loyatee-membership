@@ -1,8 +1,24 @@
+import redis
 from arango import ArangoClient
 from flask import current_app, g
 
 
 COLLECTIONS = ["members"]
+
+_redis_client: "redis.Redis | None" = None
+
+
+def init_redis(app):
+    global _redis_client
+    _redis_client = redis.Redis.from_url(
+        app.config["REDIS_URL"], decode_responses=True
+    )
+
+
+def get_redis() -> "redis.Redis":
+    if _redis_client is None:
+        raise RuntimeError("Redis not initialized — call init_redis(app) first")
+    return _redis_client
 
 
 def get_client():
@@ -42,4 +58,21 @@ def init_db(app):
             db.create_collection(name)
 
     members = db.collection("members")
-    members.add_hash_index(fields=["phone"], unique=True, sparse=False)
+    _ensure_unique_index(members, ["phone"], sparse=True)
+    _ensure_unique_index(members, ["google_id"], sparse=True)
+    _ensure_unique_index(members, ["telegram_id"], sparse=True)
+    _ensure_unique_index(members, ["account_id"], sparse=True)
+
+
+def _ensure_unique_index(collection, fields, sparse):
+    for idx in collection.indexes():
+        if (
+            idx.get("fields") == fields
+            and idx.get("type") == "hash"
+            and idx.get("unique")
+        ):
+            if idx.get("sparse", False) == sparse:
+                return
+            collection.delete_index(idx["id"])
+            break
+    collection.add_hash_index(fields=fields, unique=True, sparse=sparse)

@@ -16,7 +16,7 @@
 <script setup lang="ts">
 onMounted(() => {
   setTimeout(() => {
-    navigateTo('/login')
+    navigateTo(getAuthToken() ? '/home' : '/login')
   }, 2000)
 })
 </script>

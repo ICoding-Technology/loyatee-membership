@@ -3,7 +3,7 @@ from flask import Flask
 from flask_cors import CORS
 
 from config import config
-from app.extensions import init_db
+from app.extensions import init_db, init_redis
 from app.routes import register_blueprints
 from app.controllers.errors import register_error_handlers
 
@@ -15,6 +15,7 @@ def create_app(config_name=None):
 
     CORS(app)
     init_db(app)
+    init_redis(app)
 
     register_blueprints(app)
     register_error_handlers(app)

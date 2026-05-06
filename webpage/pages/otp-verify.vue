@@ -18,8 +18,8 @@
     <ErrorMessage :message="errorMessage" />
 
     <template #bottom>
-      <Button :disabled="!isValid" @click="handleVerify">
-        Verify OTP
+      <Button :disabled="!isValid || loading" @click="handleVerify">
+        {{ loading ? "Verifying..." : "Verify OTP" }}
       </Button>
 
       <div class="resend-container">
@@ -40,72 +40,84 @@
   </FormPageLayout>
 </template>
 
-<script lang="ts">
-export default {
-  data() {
-    return {
-      otpCode: "",
-      errorMessage: "",
-      countdown: 60,
-      canResend: false,
-      timerInterval: null as number | null,
-    };
-  },
-  computed: {
-    maskedPhone(): string {
-      const phone = (this.$route.query.phone as string) || "123456789";
-      return phone.substring(0, 3) + "***" + phone.substring(6);
-    },
-    isValid(): boolean {
-      return this.otpCode.length === 6;
-    },
-  },
-  mounted() {
-    this.startCountdown();
-  },
-  beforeUnmount() {
-    if (this.timerInterval) {
-      clearInterval(this.timerInterval);
+<script lang="ts" setup>
+if (getAuthToken()) navigateTo("/home");
+
+const route = useRoute();
+const router = useRouter();
+const api = useApi();
+const profileStore = useProfileStore();
+
+const otpCode = ref("");
+const errorMessage = ref("");
+const countdown = ref(60);
+const canResend = ref(false);
+const loading = ref(false);
+let timerInterval: ReturnType<typeof setInterval> | null = null;
+
+const phoneDigits = computed(() => (route.query.phone as string) || "");
+const fullPhone = computed(() => "+855" + phoneDigits.value);
+
+const maskedPhone = computed(() => {
+  const phone = phoneDigits.value || "123456789";
+  return phone.substring(0, 3) + "***" + phone.substring(6);
+});
+
+const isValid = computed(() => otpCode.value.length === 6);
+
+const startCountdown = () => {
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    if (countdown.value > 0) {
+      countdown.value--;
+    } else {
+      canResend.value = true;
+      if (timerInterval) clearInterval(timerInterval);
     }
-  },
-  methods: {
-    handleOtpInput() {
-      this.otpCode = this.otpCode.replace(/\D/g, "").slice(0, 6);
-      this.errorMessage = "";
-    },
-    handleVerify() {
-      if (this.isValid) {
-        console.log("OTP submitted:", this.otpCode);
-        this.$router.push("/home");
-      }
-    },
-    handleResend() {
-      if (this.canResend) {
-        console.log("Resending OTP...");
-        this.otpCode = "";
-        this.errorMessage = "";
-        this.countdown = 60;
-        this.canResend = false;
-        this.startCountdown();
-      }
-    },
-    startCountdown() {
-      if (this.timerInterval) {
-        clearInterval(this.timerInterval);
-      }
-      this.timerInterval = setInterval(() => {
-        if (this.countdown > 0) {
-          this.countdown--;
-        } else {
-          this.canResend = true;
-          if (this.timerInterval) {
-            clearInterval(this.timerInterval);
-          }
-        }
-      }, 1000) as unknown as number;
-    },
-  },
+  }, 1000);
 };
+
+const handleOtpInput = () => {
+  otpCode.value = otpCode.value.replace(/\D/g, "").slice(0, 6);
+  errorMessage.value = "";
+};
+
+const handleVerify = async () => {
+  if (!isValid.value || loading.value) return;
+  errorMessage.value = "";
+  loading.value = true;
+  try {
+    const res = await api.verifyOtp(fullPhone.value, otpCode.value);
+    await setAuthToken(res.token);
+    const profile = await api.getProfile();
+    await profileStore.save(profile.member);
+    router.push("/home");
+  } catch (e: any) {
+    errorMessage.value = e?.error || "Verification failed. Please try again.";
+  } finally {
+    loading.value = false;
+  }
+};
+
+const handleResend = async () => {
+  if (!canResend.value) return;
+  errorMessage.value = "";
+  try {
+    const res = await api.requestOtp(fullPhone.value);
+    if (res.otp_debug) console.log("[dev] OTP:", res.otp_debug);
+    otpCode.value = "";
+    countdown.value = 60;
+    canResend.value = false;
+    startCountdown();
+  } catch (e: any) {
+    errorMessage.value = e?.error || "Could not resend OTP.";
+  }
+};
+
+onMounted(startCountdown);
+onBeforeUnmount(() => {
+  if (timerInterval) clearInterval(timerInterval);
+});
 </script>
 
 <style scoped>

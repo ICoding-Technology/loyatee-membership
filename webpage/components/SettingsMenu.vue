@@ -66,9 +66,12 @@ const goToPrivacy = () => {
   navigateTo("/privacy");
 };
 
-const handleSignOut = () => {
-  console.log("Sign out");
-  navigateTo("/register");
+const profileStore = useProfileStore();
+
+const handleSignOut = async () => {
+  await clearAuthToken();
+  await profileStore.clear();
+  navigateTo("/login");
 };
 
 </script>

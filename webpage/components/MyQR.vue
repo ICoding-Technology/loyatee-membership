@@ -24,15 +24,24 @@
 
             <div class="flex flex-col items-center justify-center py-4">
               <div
-                class="w-40 h-40 rounded-2xl border border-gray-200 flex items-center justify-center bg-gray-50"
+                class="w-48 h-48 rounded-2xl border border-gray-200 flex items-center justify-center bg-white p-3"
               >
-                <!-- Placeholder QR area -->
+                <img
+                  v-if="qrDataUrl"
+                  :src="qrDataUrl"
+                  :alt="`QR for account ${accountId}`"
+                  class="w-full h-full"
+                />
                 <UIcon
+                  v-else
                   name="i-heroicons-qr-code"
-                  class="w-16 h-16 text-gray-400"
+                  class="w-16 h-16 text-gray-300"
                 />
               </div>
-              <p class="mt-4 text-xs text-gray-500 text-center">
+              <p v-if="accountId" class="mt-3 text-xs text-gray-700">
+                Account ID: <span class="font-number font-semibold">{{ accountId }}</span>
+              </p>
+              <p class="mt-2 text-xs text-gray-500 text-center">
                 Present this QR code at participating stores to earn or redeem
                 points.
               </p>
@@ -44,22 +53,39 @@
   </Teleport>
 </template>
 
-<script lang="ts">
-export default {
-  name: "MyQR",
-  props: {
-    modelValue: {
-      type: Boolean,
-      required: true,
-    },
-  },
-  emits: ["update:modelValue"],
-  methods: {
-    close() {
-      this.$emit("update:modelValue", false);
-    },
-  },
+<script setup lang="ts">
+import QRCode from "qrcode";
+
+const props = defineProps<{ modelValue: boolean }>();
+const emit = defineEmits(["update:modelValue"]);
+
+const profileStore = useProfileStore();
+const accountId = ref<string | null>(null);
+const qrDataUrl = ref<string | null>(null);
+
+const close = () => emit("update:modelValue", false);
+
+const renderQr = async () => {
+  const profile = await profileStore.load();
+  accountId.value = profile?.account_id ?? null;
+  if (!accountId.value) {
+    qrDataUrl.value = null;
+    return;
+  }
+  qrDataUrl.value = await QRCode.toDataURL(accountId.value, {
+    width: 320,
+    margin: 1,
+    color: { dark: "#1a1a1a", light: "#ffffff" },
+  });
 };
+
+watch(
+  () => props.modelValue,
+  (open) => {
+    if (open) renderQr();
+  },
+  { immediate: true },
+);
 </script>
 
 <style scoped>

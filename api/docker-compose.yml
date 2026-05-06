@@ -27,12 +27,28 @@ services:
       retries: 10
       start_period: 20s
 
+  redis:
+    image: redis:7-alpine
+    container_name: loyatee-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
   api:
     build: .
     container_name: loyatee-api
     restart: unless-stopped
     depends_on:
       arangodb:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     environment:
       FLASK_ENV: ${FLASK_ENV:-development}
@@ -41,9 +57,15 @@ services:
       ARANGO_DB: ${ARANGO_DB:-loyatee}
       ARANGO_USER: ${ARANGO_USER:-root}
       ARANGO_PASSWORD: ${ARANGO_PASSWORD:-rootpass}
+      REDIS_URL: redis://redis:6379/0
+      OTP_TTL_SECONDS: ${OTP_TTL_SECONDS:-300}
     ports:
       - "5001:5000"
+    volumes:
+      - ./:/app
+    command: gunicorn --bind 0.0.0.0:5000 --workers 2 --reload wsgi:app
 
 volumes:
   arango_data:
   arango_apps:
+  redis_data:

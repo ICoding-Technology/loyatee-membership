@@ -73,6 +73,10 @@
   </div>
 </template>
 
+<script setup lang="ts">
+if (!getAuthToken()) navigateTo("/login");
+</script>
+
 <script lang="ts">
 export default {
   data() {

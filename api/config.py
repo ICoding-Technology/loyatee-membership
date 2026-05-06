@@ -11,6 +11,13 @@ class Config:
     ARANGO_USER = os.getenv("ARANGO_USER", "root")
     ARANGO_PASSWORD = os.getenv("ARANGO_PASSWORD", "")
 
+    REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    OTP_TTL_SECONDS = int(os.getenv("OTP_TTL_SECONDS", "300"))
+
+    GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+    TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    TELEGRAM_AUTH_MAX_AGE = int(os.getenv("TELEGRAM_AUTH_MAX_AGE", "86400"))
+
 
 class DevelopmentConfig(Config):
     DEBUG = True

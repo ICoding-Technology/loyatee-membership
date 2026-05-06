@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker info *)",
+      "Read(//Users/menhsowattana/.docker/run/**)",
+      "Bash(bun add *)"
+    ]
+  }
+}

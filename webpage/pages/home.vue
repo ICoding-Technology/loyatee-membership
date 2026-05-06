@@ -1,5 +1,5 @@
 <template>
-    <div class="bg-white flex flex-col">
+    <div class="bg-white flex flex-col overflow-x-hidden">
         <!-- Sticky header at the very top -->
         <div class="sticky top-0 z-30 bg-white">
             <Header @qr-click="openMyQr" />
@@ -29,6 +29,10 @@
         <MyQR v-model="showMyQr" />
     </div>
 </template>
+
+<script setup lang="ts">
+if (!getAuthToken()) navigateTo("/login");
+</script>
 
 <script lang="ts">
 export default {
