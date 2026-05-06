@@ -10,6 +10,7 @@ class Config:
     ARANGO_DB = os.getenv("ARANGO_DB", "loyatee")
     ARANGO_USER = os.getenv("ARANGO_USER", "root")
     ARANGO_PASSWORD = os.getenv("ARANGO_PASSWORD", "")
+    ARANGO_BOOTSTRAP = os.getenv("ARANGO_BOOTSTRAP", "0") == "1"
 
     REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     OTP_TTL_SECONDS = int(os.getenv("OTP_TTL_SECONDS", "300"))

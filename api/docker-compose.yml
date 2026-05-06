@@ -57,6 +57,7 @@ services:
       ARANGO_DB: ${ARANGO_DB:-loyatee}
       ARANGO_USER: ${ARANGO_USER:-root}
       ARANGO_PASSWORD: ${ARANGO_PASSWORD:-rootpass}
+      ARANGO_BOOTSTRAP: "1"
       REDIS_URL: redis://redis:6379/0
       OTP_TTL_SECONDS: ${OTP_TTL_SECONDS:-300}
     ports:

@@ -38,21 +38,19 @@ def get_db():
 
 def init_db(app):
     client = ArangoClient(hosts=app.config["ARANGO_URL"])
-    sys_db = client.db(
-        "_system",
-        username=app.config["ARANGO_USER"],
-        password=app.config["ARANGO_PASSWORD"],
-    )
-
     db_name = app.config["ARANGO_DB"]
-    if not sys_db.has_database(db_name):
-        sys_db.create_database(db_name)
+    user = app.config["ARANGO_USER"]
+    password = app.config["ARANGO_PASSWORD"]
 
-    db = client.db(
-        db_name,
-        username=app.config["ARANGO_USER"],
-        password=app.config["ARANGO_PASSWORD"],
-    )
+    # In dev/bootstrap, ARANGO_BOOTSTRAP=1 lets us connect to _system and
+    # create the database if missing. In production the DB user usually has
+    # no access to _system, so default to skipping that step.
+    if app.config.get("ARANGO_BOOTSTRAP"):
+        sys_db = client.db("_system", username=user, password=password)
+        if not sys_db.has_database(db_name):
+            sys_db.create_database(db_name)
+
+    db = client.db(db_name, username=user, password=password)
     for name in COLLECTIONS:
         if not db.has_collection(name):
             db.create_collection(name)
