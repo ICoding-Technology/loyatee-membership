@@ -1,5 +1,6 @@
 import redis
 from arango import ArangoClient
+from arango.exceptions import CollectionCreateError, IndexCreateError
 from flask import current_app, g
 
 
@@ -52,8 +53,12 @@ def init_db(app):
 
     db = client.db(db_name, username=user, password=password)
     for name in COLLECTIONS:
-        if not db.has_collection(name):
+        try:
             db.create_collection(name)
+        except CollectionCreateError as e:
+            # 1207 = duplicate name. Another worker raced us — that's fine.
+            if e.error_code != 1207:
+                raise
 
     members = db.collection("members")
     _ensure_unique_index(members, ["phone"], sparse=True)
@@ -73,4 +78,8 @@ def _ensure_unique_index(collection, fields, sparse):
                 return
             collection.delete_index(idx["id"])
             break
-    collection.add_hash_index(fields=fields, unique=True, sparse=sparse)
+    try:
+        collection.add_hash_index(fields=fields, unique=True, sparse=sparse)
+    except IndexCreateError:
+        # Another worker raced us. Index already exists — fine.
+        pass
