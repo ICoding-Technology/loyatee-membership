@@ -40,6 +40,9 @@ def _register_runtime_config(app):
     @app.route("/config.js")
     def runtime_config():
         payload = {
+            # Empty string = same-origin relative URLs. Override only if the
+            # API is served on a different origin than the SPA.
+            "apiBase": os.getenv("PUBLIC_API_BASE", ""),
             "googleClientId": os.getenv("GOOGLE_CLIENT_ID", ""),
             "telegramBotName": os.getenv("TELEGRAM_BOT_NAME", ""),
         }

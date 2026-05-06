@@ -1,4 +1,5 @@
 interface AppConfig {
+  apiBase: string;
   googleClientId: string;
   telegramBotName: string;
 }
@@ -20,6 +21,7 @@ export const useClientConfig = (): AppConfig => {
   }
   const { public: pub } = useRuntimeConfig();
   return {
+    apiBase: (pub.apiBase as string) || "",
     googleClientId: (pub.googleClientId as string) || "",
     telegramBotName: (pub.telegramBotName as string) || "",
   };

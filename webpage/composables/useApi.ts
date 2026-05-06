@@ -62,7 +62,7 @@ export interface ApiError {
 }
 
 export const useApi = () => {
-  const { public: { apiBase } } = useRuntimeConfig();
+  const { apiBase } = useClientConfig();
 
   const call = async <T>(path: string, opts: Parameters<typeof $fetch>[1] = {}): Promise<T> => {
     try {
