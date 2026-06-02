@@ -9,7 +9,12 @@
         class="overflow-hidden rounded-lg bg-white border border-gray-200 divide-y divide-gray-100"
       >
         <SettingsMenuItem label="Edit Profile" icon="i-heroicons-user" @click="goToEditProfile" />
-        <SettingsMenuItem label="Change password" icon="i-heroicons-key" @click="goToChangePassword" />
+        <SettingsMenuItem
+          v-if="canChangePassword"
+          label="Change password"
+          icon="i-heroicons-key"
+          @click="goToChangePassword"
+        />
       </div>
     </section>
 
@@ -67,6 +72,13 @@ const goToPrivacy = () => {
 };
 
 const profileStore = useProfileStore();
+const signinType = ref<string | undefined>(undefined);
+const canChangePassword = computed(() => signinType.value !== "google");
+
+onMounted(async () => {
+  const stored = await profileStore.load();
+  signinType.value = stored?.signin_type;
+});
 
 const handleSignOut = async () => {
   await clearAuthToken();

@@ -22,8 +22,12 @@
                 </div>
             </div>
 
-            <!-- Valid date -->
-            <div class="mt-12 text-white/80 text-xs">
+            <!-- Points balance (memberships) or valid date (static cards) -->
+            <div v-if="points !== null" class="mt-12 text-white/80 text-xs">
+                <span class="font-semibold text-white font-number">{{ points.toLocaleString() }}</span>
+                <span> Points</span>
+            </div>
+            <div v-else-if="validUntil" class="mt-12 text-white/80 text-xs">
                 <span>Valid until: </span>
                 <span class="font-semibold text-white">{{ validUntil }}</span>
             </div>
@@ -45,7 +49,11 @@ export default {
         },
         validUntil: {
             type: String,
-            default: '12 July 2023'
+            default: ''
+        },
+        points: {
+            type: Number,
+            default: null
         }
     }
 }

@@ -4,7 +4,8 @@ from arango.exceptions import CollectionCreateError, IndexCreateError
 from flask import current_app, g
 
 
-COLLECTIONS = ["members"]
+DOCUMENT_COLLECTIONS = ["members", "stores", "transactions", "transactions_archive"]
+EDGE_COLLECTIONS = ["memberships"]
 
 _redis_client: "redis.Redis | None" = None
 
@@ -52,19 +53,54 @@ def init_db(app):
             sys_db.create_database(db_name)
 
     db = client.db(db_name, username=user, password=password)
-    for name in COLLECTIONS:
-        try:
-            db.create_collection(name)
-        except CollectionCreateError as e:
-            # 1207 = duplicate name. Another worker raced us — that's fine.
-            if e.error_code != 1207:
-                raise
+    for name in DOCUMENT_COLLECTIONS:
+        _create_collection(db, name, edge=False)
+    for name in EDGE_COLLECTIONS:
+        _create_collection(db, name, edge=True)
 
     members = db.collection("members")
     _ensure_unique_index(members, ["phone"], sparse=True)
     _ensure_unique_index(members, ["google_id"], sparse=True)
     _ensure_unique_index(members, ["telegram_id"], sparse=True)
     _ensure_unique_index(members, ["account_id"], sparse=True)
+
+    stores = db.collection("stores")
+    _ensure_unique_index(stores, ["slug"], sparse=True)
+    _ensure_unique_index(stores, ["uuid"], sparse=True)
+    _ensure_persistent_index(stores, ["status"], unique=False, sparse=False)
+
+    # One subscription per (member, store). The edge index already covers
+    # OUTBOUND/INBOUND traversal; this just blocks duplicate subscriptions.
+    memberships = db.collection("memberships")
+    _ensure_persistent_index(memberships, ["_from", "_to"], unique=True, sparse=False)
+
+    # Hot ledger: balance reads filter by (membership_id, period); the
+    # statement view reads by (membership_id, created_at).
+    transactions = db.collection("transactions")
+    _ensure_persistent_index(
+        transactions, ["membership_id", "period"], unique=False, sparse=False
+    )
+    _ensure_persistent_index(
+        transactions, ["membership_id", "created_at"], unique=False, sparse=False
+    )
+    # Idempotent period close: at most one opening row per (membership, period).
+    _ensure_persistent_index(
+        transactions, ["membership_id", "period", "type"], unique=False, sparse=False
+    )
+
+    archive = db.collection("transactions_archive")
+    _ensure_persistent_index(
+        archive, ["membership_id", "created_at"], unique=False, sparse=False
+    )
+
+
+def _create_collection(db, name, edge):
+    try:
+        db.create_collection(name, edge=edge)
+    except CollectionCreateError as e:
+        # 1207 = duplicate name. Another worker raced us — that's fine.
+        if e.error_code != 1207:
+            raise
 
 
 def _ensure_unique_index(collection, fields, sparse):
@@ -80,6 +116,21 @@ def _ensure_unique_index(collection, fields, sparse):
             break
     try:
         collection.add_hash_index(fields=fields, unique=True, sparse=sparse)
+    except IndexCreateError:
+        # Another worker raced us. Index already exists — fine.
+        pass
+
+
+def _ensure_persistent_index(collection, fields, unique, sparse):
+    for idx in collection.indexes():
+        if (
+            idx.get("fields") == fields
+            and idx.get("type") == "persistent"
+            and idx.get("unique", False) == unique
+        ):
+            return
+    try:
+        collection.add_persistent_index(fields=fields, unique=unique, sparse=sparse)
     except IndexCreateError:
         # Another worker raced us. Index already exists — fine.
         pass

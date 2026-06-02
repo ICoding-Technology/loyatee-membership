@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 
-from app.controllers import members_controller
+from app.controllers import members_controller, memberships_controller
 
 members_bp = Blueprint("members", __name__)
 
@@ -18,6 +18,17 @@ def create_member():
 @members_bp.get("/<member_id>")
 def get_member(member_id):
     return jsonify(members_controller.get_member(member_id))
+
+
+@members_bp.get("/<member_id>/stores")
+def list_member_stores(member_id):
+    return jsonify(memberships_controller.list_member_stores(member_id))
+
+
+@members_bp.get("/<member_id>/transactions")
+def member_transactions(member_id):
+    limit = request.args.get("limit", default=50, type=int)
+    return jsonify(memberships_controller.member_transactions(member_id, limit=limit))
 
 
 @members_bp.patch("/<member_id>")

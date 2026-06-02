@@ -1,8 +1,9 @@
 <template>
-  <header class="sticky top-0 z-30 bg-white border-b">
+  <header class="sticky top-0 z-30 bg-white border-b border-gray-200">
     <UContainer>
       <div class="flex items-center gap-3 py-4">
         <button
+          v-if="back"
           type="button"
           class="inline-flex items-center justify-center w-7 h-7 rounded-full border border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition"
           @click="onClose"
@@ -25,6 +26,10 @@ export default {
     title: {
       type: String,
       default: "Detail",
+    },
+    back: {
+      type: Boolean,
+      default: true,
     },
   },
   methods: {

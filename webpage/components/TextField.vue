@@ -1,5 +1,5 @@
 <template>
-  <div class="textfield-wrapper" :class="{ focused: isFocused }">
+  <div class="textfield-wrapper" :class="{ focused: isFocused, disabled }">
     <span v-if="$slots.prefix" class="textfield-prefix">
       <slot name="prefix" />
     </span>
@@ -8,6 +8,7 @@
       :type="type"
       :placeholder="placeholder"
       :maxlength="maxlength"
+      :readonly="disabled"
       class="textfield-input"
       @input="
         $emit('update:modelValue', ($event.target as HTMLInputElement).value)
@@ -37,6 +38,10 @@ export default {
       type: [String, Number],
       default: undefined,
     },
+    disabled: {
+      type: Boolean,
+      default: false,
+    },
   },
   emits: ["update:modelValue"],
   data() {
@@ -60,6 +65,16 @@ export default {
 
 .textfield-wrapper.focused {
   border-color: var(--color-primary);
+}
+
+.textfield-wrapper.disabled {
+  background: var(--color-disabled-bg, #f3f4f6);
+  cursor: not-allowed;
+}
+
+.textfield-wrapper.disabled .textfield-input {
+  color: var(--color-text-secondary);
+  cursor: not-allowed;
 }
 
 .textfield-prefix {

@@ -3,7 +3,23 @@
     "allow": [
       "Bash(docker info *)",
       "Read(//Users/menhsowattana/.docker/run/**)",
-      "Bash(bun add *)"
+      "Bash(bun add *)",
+      "WebFetch(domain:core.telegram.org)",
+      "WebFetch(domain:gateway.telegram.org)",
+      "Bash(curl *)",
+      "Bash(docker compose *)",
+      "Bash(lsof -nP -iTCP:5001 -sTCP:LISTEN)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_console_messages",
+      "mcp__playwright__browser_evaluate",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_type",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_resize",
+      "Bash(git restore *)",
+      "Bash(rm -f ./*.png)",
+      "Bash(git add *)"
     ]
   }
 }

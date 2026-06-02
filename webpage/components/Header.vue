@@ -1,5 +1,5 @@
 <template>
-  <header class="bg-white border-b">
+  <header class="bg-white border-b border-gray-200">
     <UContainer>
       <div class="flex items-center justify-between py-4 relative">
         <!-- User info section -->
@@ -8,12 +8,11 @@
             class="w-10 h-10 bg-blue-200 rounded-full flex items-center justify-center overflow-hidden"
           >
             <img
-              v-if="member?.avatar_url && !avatarFailed"
-              :src="member.avatar_url"
+              v-if="avatarUrl"
+              :src="avatarUrl"
               :alt="displayName"
               referrerpolicy="no-referrer"
               class="w-full h-full object-cover"
-              @error="avatarFailed = true"
             />
             <span v-else class="text-blue-600 text-sm font-semibold">{{ initials }}</span>
           </div>
@@ -45,7 +44,23 @@ defineEmits(["qr-click"]);
 
 const profileStore = useProfileStore();
 const member = ref<Member | null>(null);
-const avatarFailed = ref(false);
+const avatarUrl = ref("");
+
+const preloadAvatar = (url: string) => {
+  if (!url) {
+    avatarUrl.value = "";
+    return;
+  }
+  const img = new Image();
+  img.referrerPolicy = "no-referrer";
+  img.onload = () => {
+    avatarUrl.value = url;
+  };
+  img.onerror = () => {
+    avatarUrl.value = "";
+  };
+  img.src = url;
+};
 
 const displayName = computed(() => {
   const m = member.value;
@@ -63,7 +78,10 @@ const initials = computed(() => {
 
 onMounted(async () => {
   const stored = await profileStore.load();
-  if (stored) member.value = stored;
+  if (stored) {
+    member.value = stored;
+    preloadAvatar(stored.avatar_url ?? "");
+  }
 });
 </script>
 

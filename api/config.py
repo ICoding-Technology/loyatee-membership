@@ -18,6 +18,8 @@ class Config:
     GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
     TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
     TELEGRAM_AUTH_MAX_AGE = int(os.getenv("TELEGRAM_AUTH_MAX_AGE", "86400"))
+    TELEGRAM_GATEWAY_TOKEN = os.getenv("TELEGRAM_GATEWAY_TOKEN", "")
+    TELEGRAM_GATEWAY_SENDER_USERNAME = os.getenv("TELEGRAM_GATEWAY_SENDER_USERNAME", "")
 
 
 class DevelopmentConfig(Config):

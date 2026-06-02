@@ -1,13 +1,18 @@
 import hashlib
 import hmac
+import json
 import random
 import time
+import urllib.error
+import urllib.request
 
 from flask import current_app
 
 from app.controllers.errors import BadRequest, Unauthorized
 from app.extensions import get_redis
 from app.models import member
+
+TELEGRAM_GATEWAY_URL = "https://gatewayapi.telegram.org/sendVerificationMessage"
 
 
 def _otp_key(phone: str) -> str:
@@ -26,6 +31,17 @@ def parse_token(token: str):
     return member_id or None
 
 
+def member_id_from_request():
+    """Resolve the current member id from the Authorization bearer token."""
+    from flask import request
+
+    header = request.headers.get("Authorization", "")
+    if not header.startswith("Bearer "):
+        return None
+    token = header[len("Bearer "):].strip()
+    return parse_token(token) if token else None
+
+
 def request_otp(data):
     phone = (data or {}).get("phone")
     if not phone:
@@ -33,8 +49,53 @@ def request_otp(data):
 
     otp = f"{random.randint(0, 999999):06d}"
     ttl = current_app.config["OTP_TTL_SECONDS"]
+    _send_telegram_otp(phone, otp, ttl)
     get_redis().setex(_otp_key(phone), ttl, otp)
-    return {"message": "OTP sent", "otp_debug": otp}
+    response = {"message": "OTP sent"}
+    if current_app.debug:
+        response["otp_debug"] = otp
+    return response
+
+
+def _send_telegram_otp(phone: str, code: str, ttl: int) -> None:
+    """Deliver an OTP via Telegram Gateway. No-op when not configured (dev mode)."""
+    token = current_app.config.get("TELEGRAM_GATEWAY_TOKEN")
+    if not token:
+        current_app.logger.info("Telegram Gateway not configured; skipping delivery")
+        return
+
+    body = {
+        "phone_number": phone,
+        "code": code,
+        "ttl": ttl,
+    }
+    sender = current_app.config.get("TELEGRAM_GATEWAY_SENDER_USERNAME")
+    if sender:
+        body["sender_username"] = sender
+
+    req = urllib.request.Request(
+        TELEGRAM_GATEWAY_URL,
+        data=json.dumps(body).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        },
+    )
+    generic_error = "Could not send verification code. Please try again later."
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode("utf-8", errors="ignore")
+        current_app.logger.error("Telegram Gateway HTTP %s: %s", e.code, detail)
+        raise BadRequest(generic_error)
+    except urllib.error.URLError as e:
+        current_app.logger.error("Telegram Gateway unreachable: %s", e.reason)
+        raise BadRequest(generic_error)
+
+    if not payload.get("ok"):
+        current_app.logger.error("Telegram Gateway rejected: %s", payload.get("error"))
+        raise BadRequest(generic_error)
 
 
 def verify_otp(data):
@@ -61,6 +122,7 @@ def verify_otp(data):
             "message": "verified",
             "token": _issue_token(created["id"]),
             "member": created,
+            "is_new": True,
         }
 
     serialized = member.serialize(existing)
@@ -68,6 +130,7 @@ def verify_otp(data):
         "message": "verified",
         "token": _issue_token(serialized["id"]),
         "member": serialized,
+        "is_new": False,
     }
 
 

@@ -1,55 +1,32 @@
 <template>
     <div class="w-full overflow-x-clip px-5 pb-7 pt-5 bg-white">
-        <UCarousel v-slot="{ item }" :items="cards" align="center" :ui="{
+        <UCarousel v-if="memberships.length" v-slot="{ item }" :items="memberships" align="center" :ui="{
             viewport: 'overflow-visible',
             container: '-ms-4',
             item: 'basis-[99%] sm:basis-[76%] lg:basis-[62%] ps-4',
             dots: 'mt-3 flex justify-center gap-2',
             dot: 'size-2 rounded-full bg-gray-300 data-[state=active]:bg-[#3B82F6]'
         }" dots>
-            <Card :title="item.title" :subtitle="item.subtitle" :valid-until="item.validUntil" />
+            <Card :title="item.store?.name || 'Membership'" :subtitle="tierLabel(item.tier)" :points="item.points" />
         </UCarousel>
+
+        <!-- Empty state: not subscribed to any store yet -->
+        <div v-else
+            class="rounded-[15px] border border-dashed border-gray-300 bg-gray-50 px-5 py-8 text-center">
+            <p class="text-sm font-semibold text-gray-700">No memberships yet</p>
+            <p class="mt-1 text-xs text-gray-400">Subscribe to a store to start earning points.</p>
+        </div>
     </div>
 </template>
 
-<script lang="ts">
-import Card from './Card.vue'
+<script setup lang="ts">
+import type { Membership } from "../composables/useApi";
+import Card from "./Card.vue";
 
-export default {
-    name: 'MembershipCard',
-    components: {
-        Card
-    },
-    data() {
-        return {
-            cards: [
-                {
-                    title: 'Loyatee',
-                    subtitle: 'Membership',
-                    validUntil: '12 July 2023'
-                },
-                {
-                    title: 'Loyatee',
-                    subtitle: 'Premium',
-                    validUntil: '31 Dec 2025'
-                },
-                {
-                    title: 'Loyatee',
-                    subtitle: 'VIP',
-                    validUntil: '15 March 2026'
-                },
-                {
-                    title: 'Loyatee',
-                    subtitle: 'Gold',
-                    validUntil: '20 June 2026'
-                },
-                {
-                    title: 'Loyatee',
-                    subtitle: 'Platinum',
-                    validUntil: '10 August 2026'
-                }
-            ]
-        }
-    }
-}
+withDefaults(defineProps<{ memberships?: Membership[] }>(), {
+    memberships: () => [],
+});
+
+const tierLabel = (tier?: string) =>
+    tier ? tier.charAt(0).toUpperCase() + tier.slice(1) : "Membership";
 </script>

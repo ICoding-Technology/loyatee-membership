@@ -7,11 +7,50 @@ export interface VerifyOtpResponse {
   message: string;
   token: string;
   member: Member;
+  is_new: boolean;
+}
+
+export interface Store {
+  id: string;
+  slug?: string;
+  name?: string;
+  logo_url?: string;
+  category?: string;
+  status?: string;
+}
+
+export interface Membership {
+  id: string;
+  member_id: string;
+  store_id: string;
+  membership_no?: string;
+  tier?: string;
+  status?: string;
+  current_period?: number;
+  points: number;
+  store?: Store;
+}
+
+export interface Transaction {
+  id: string;
+  membership_id: string;
+  member_id: string;
+  store_id: string;
+  store_name?: string;
+  period: number;
+  type: "earn" | "redeem" | "adjust" | "opening";
+  side: "Cr" | "Dr";
+  amount: number;
+  reference?: string;
+  created_at: string;
 }
 
 export interface ProfileResponse {
   member: Member;
+  memberships: Membership[];
 }
+
+export type UpdateMemberPayload = Partial<Pick<Member, "name" | "email" | "avatar_url" | "phone">>;
 
 // Token is persisted in IndexedDB but cached in this module-level ref so the
 // synchronous auth guards in page setup blocks can read it without awaiting.
@@ -47,7 +86,6 @@ export interface Member {
   avatar_url?: string;
   google_id?: string;
   telegram_id?: string;
-  points?: number;
 }
 
 export interface SignInResponse {
@@ -106,6 +144,37 @@ export const useApi = () => {
     getProfile: () => {
       const token = getAuthToken();
       return call<ProfileResponse>("/api/profile", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+    },
+
+    updateMember: (memberId: string, data: UpdateMemberPayload) => {
+      const token = getAuthToken();
+      return call<Member>(`/api/members/${memberId}`, {
+        method: "PATCH",
+        body: data,
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+    },
+
+    // Public store lookup by base64 subscribe token (for the confirmation page).
+    getStoreByToken: (token: string) =>
+      call<Store>("/api/stores/by-token", { query: { token } }),
+
+    // Subscribe the authenticated member to the store behind the token.
+    subscribeToStore: (token: string) => {
+      const authToken = getAuthToken();
+      return call<Membership>("/api/subscribe", {
+        query: { store: token },
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+      });
+    },
+
+    // Recent activity across all of the member's memberships.
+    getMemberTransactions: (memberId: string, limit = 50) => {
+      const token = getAuthToken();
+      return call<Transaction[]>(`/api/members/${memberId}/transactions`, {
+        query: { limit },
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
     },

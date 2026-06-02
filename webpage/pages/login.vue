@@ -78,6 +78,8 @@ if (getAuthToken()) navigateTo("/home");
 const router = useRouter();
 const api = useApi();
 const profileStore = useProfileStore();
+const toast = useNotify();
+const authRedirect = useAuthRedirect();
 const { googleClientId, telegramBotName } = useClientConfig();
 
 const phoneNumber = ref("");
@@ -109,7 +111,7 @@ const handleSignIn = async () => {
     if (res.otp_debug) console.log("[dev] OTP:", res.otp_debug);
     router.push({ path: "/otp-verify", query: { phone: phoneNumber.value } });
   } catch (e: any) {
-    errorMessage.value = e?.error || "Could not send OTP. Please try again.";
+    toast.error(e?.error || "Could not send OTP. Please try again.");
   } finally {
     loading.value = false;
   }
@@ -127,7 +129,7 @@ const initGoogle = () => {
     callback: async (resp: { access_token?: string; error?: string }) => {
       googleLoading.value = false;
       if (resp.error || !resp.access_token) {
-        errorMessage.value = resp.error || "Google sign-in cancelled.";
+        toast.error(resp.error || "Google sign-in cancelled.");
         return;
       }
       try {
@@ -135,18 +137,17 @@ const initGoogle = () => {
         await setAuthToken(res.token);
         const profile = await api.getProfile();
         await profileStore.save(profile.member);
-        router.push("/home");
+        router.push(authRedirect.consume() || "/home");
       } catch (e: any) {
-        errorMessage.value = e?.error || "Google sign-in failed.";
+        toast.error(e?.error || "Google sign-in failed.");
       }
     },
   });
 };
 
 const handleGoogleSignIn = () => {
-  errorMessage.value = "";
   if (!googleTokenClient) {
-    errorMessage.value = "Google sign-in is still loading — try again.";
+    toast.info("Google sign-in is still loading — try again.");
     return;
   }
   googleLoading.value = true;
@@ -160,15 +161,14 @@ const initTelegram = () => {
   if (!telegramBotName || !telegramBtnRef.value) return;
 
   (window as any).onTelegramAuth = async (user: Record<string, unknown>) => {
-    errorMessage.value = "";
     try {
       const res = await api.signInWithTelegram(user);
       await setAuthToken(res.token);
       const profile = await api.getProfile();
       await profileStore.save(profile.member);
-      router.push("/home");
+      router.push(authRedirect.consume() || "/home");
     } catch (e: any) {
-      errorMessage.value = e?.error || "Telegram sign-in failed.";
+      toast.error(e?.error || "Telegram sign-in failed.");
     }
   };
 

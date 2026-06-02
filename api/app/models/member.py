@@ -25,7 +25,6 @@ def _serialize(doc):
         "avatar_url": doc.get("avatar_url"),
         "google_id": doc.get("google_id"),
         "telegram_id": doc.get("telegram_id"),
-        "points": doc.get("points", 0),
         "created_at": doc.get("created_at"),
         "updated_at": doc.get("updated_at"),
     }
@@ -92,7 +91,6 @@ def _build_doc(data):
         "avatar_url": data.get("avatar_url"),
         "google_id": data.get("google_id"),
         "telegram_id": data.get("telegram_id"),
-        "points": data.get("points", 0),
         "created_at": now,
         "updated_at": now,
     }
@@ -119,7 +117,7 @@ def update(member_id, data):
     existing = collection.get(member_id)
     if not existing:
         return None
-    allowed = ("name", "email", "avatar_url", "phone", "points")
+    allowed = ("name", "email", "avatar_url", "phone")
     patch = {k: v for k, v in data.items() if k in allowed}
     patch["updated_at"] = _now()
     patch["_key"] = member_id

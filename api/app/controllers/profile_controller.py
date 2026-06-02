@@ -2,7 +2,7 @@ from flask import request
 
 from app.controllers.auth_controller import parse_token
 from app.controllers.errors import NotFound, Unauthorized
-from app.models import member
+from app.models import member, membership
 
 
 def _bearer_token():
@@ -25,4 +25,7 @@ def get_profile():
     if doc is None:
         raise NotFound("member not found")
 
-    return {"member": member.serialize(doc)}
+    return {
+        "member": member.serialize(doc),
+        "memberships": membership.list_for_member(member_id),
+    }

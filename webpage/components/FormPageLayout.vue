@@ -44,6 +44,9 @@ export default {
 
 .form-page-bottom {
   margin-top: auto;
+  /* Guarantees a gap above the button even when the form fills the screen
+     and margin-top:auto collapses to zero. */
+  padding-top: 24px;
   padding-bottom: calc(20px + env(safe-area-inset-bottom));
 }
 </style>

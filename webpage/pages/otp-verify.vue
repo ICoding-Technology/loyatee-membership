@@ -15,8 +15,6 @@
       @update:model-value="handleOtpInput"
     />
 
-    <ErrorMessage :message="errorMessage" />
-
     <template #bottom>
       <Button :disabled="!isValid || loading" @click="handleVerify">
         {{ loading ? "Verifying..." : "Verify OTP" }}
@@ -47,9 +45,10 @@ const route = useRoute();
 const router = useRouter();
 const api = useApi();
 const profileStore = useProfileStore();
+const toast = useNotify();
+const authRedirect = useAuthRedirect();
 
 const otpCode = ref("");
-const errorMessage = ref("");
 const countdown = ref(60);
 const canResend = ref(false);
 const loading = ref(false);
@@ -79,21 +78,21 @@ const startCountdown = () => {
 
 const handleOtpInput = () => {
   otpCode.value = otpCode.value.replace(/\D/g, "").slice(0, 6);
-  errorMessage.value = "";
 };
 
 const handleVerify = async () => {
   if (!isValid.value || loading.value) return;
-  errorMessage.value = "";
   loading.value = true;
   try {
     const res = await api.verifyOtp(fullPhone.value, otpCode.value);
     await setAuthToken(res.token);
     const profile = await api.getProfile();
     await profileStore.save(profile.member);
-    router.push("/home");
+    // New users finish onboarding at /setup-account, which then honors any
+    // pending redirect. Existing users resume their redirect immediately.
+    router.replace(res.is_new ? "/setup-account" : authRedirect.consume() || "/home");
   } catch (e: any) {
-    errorMessage.value = e?.error || "Verification failed. Please try again.";
+    toast.error(e?.error || "Verification failed. Please try again.");
   } finally {
     loading.value = false;
   }
@@ -101,7 +100,6 @@ const handleVerify = async () => {
 
 const handleResend = async () => {
   if (!canResend.value) return;
-  errorMessage.value = "";
   try {
     const res = await api.requestOtp(fullPhone.value);
     if (res.otp_debug) console.log("[dev] OTP:", res.otp_debug);
@@ -109,8 +107,9 @@ const handleResend = async () => {
     countdown.value = 60;
     canResend.value = false;
     startCountdown();
+    toast.info("Code sent.");
   } catch (e: any) {
-    errorMessage.value = e?.error || "Could not resend OTP.";
+    toast.error(e?.error || "Could not resend OTP.");
   }
 };
 
