@@ -5,6 +5,7 @@ from app.routes.profile import profile_bp
 from app.routes.stores import stores_bp
 from app.routes.memberships import memberships_bp
 from app.routes.subscribe import subscribe_bp
+from app.routes.rewards import rewards_bp
 
 
 def register_blueprints(app):
@@ -15,3 +16,4 @@ def register_blueprints(app):
     app.register_blueprint(stores_bp, url_prefix="/api/stores")
     app.register_blueprint(memberships_bp, url_prefix="/api/memberships")
     app.register_blueprint(subscribe_bp, url_prefix="/api/subscribe")
+    app.register_blueprint(rewards_bp, url_prefix="/api/rewards")

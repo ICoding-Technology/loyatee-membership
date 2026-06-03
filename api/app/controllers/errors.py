@@ -20,6 +20,10 @@ class Unauthorized(AppError):
     status_code = 401
 
 
+class Forbidden(AppError):
+    status_code = 403
+
+
 class BadRequest(AppError):
     status_code = 400
 

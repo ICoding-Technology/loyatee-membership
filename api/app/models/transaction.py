@@ -108,6 +108,19 @@ def redeem(membership_key, amount, reference=None):
     return _post(ms, DR, amount, "redeem", reference)
 
 
+def delete_for_membership(membership_key):
+    """Purge a membership's ledger rows (hot + archive). Used on unsubscribe."""
+    db = get_db()
+    membership_id = (
+        membership_key if "/" in str(membership_key) else f"memberships/{membership_key}"
+    )
+    for source in (COLLECTION, ARCHIVE):
+        db.aql.execute(
+            f"FOR t IN {source} FILTER t.membership_id == @mid REMOVE t IN {source}",
+            bind_vars={"mid": membership_id},
+        )
+
+
 def list_for_member(member_key, limit=50):
     """Recent activity across all of a member's memberships, newest first,
     annotated with the store name. Excludes carry-forward 'opening' rows."""

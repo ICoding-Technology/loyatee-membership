@@ -41,6 +41,8 @@ def _serialize(doc):
         "logo_url": doc.get("logo_url"),
         "category": doc.get("category"),
         "status": doc.get("status", "active"),
+        # null/absent = memberships at this store never expire.
+        "membership_duration_days": doc.get("membership_duration_days"),
         "created_at": doc.get("created_at"),
         "updated_at": doc.get("updated_at"),
     }
@@ -87,6 +89,7 @@ def create(data):
         "logo_url": data.get("logo_url"),
         "category": data.get("category"),
         "status": data.get("status", "active"),
+        "membership_duration_days": data.get("membership_duration_days"),
         "created_at": now,
         "updated_at": now,
     }
@@ -101,7 +104,7 @@ def update(store_id, data):
     collection = db.collection(COLLECTION)
     if not collection.get(store_id):
         return None
-    allowed = ("slug", "name", "logo_url", "category", "status")
+    allowed = ("slug", "name", "logo_url", "category", "status", "membership_duration_days")
     patch = {k: v for k, v in data.items() if k in allowed}
     patch["updated_at"] = _now()
     patch["_key"] = store_id

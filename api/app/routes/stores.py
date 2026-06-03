@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 
-from app.controllers import stores_controller
+from app.controllers import rewards_controller, stores_controller
 
 stores_bp = Blueprint("stores", __name__)
 
@@ -18,6 +18,16 @@ def create_store():
 @stores_bp.get("/by-token")
 def resolve_store():
     return jsonify(stores_controller.resolve_store(request.args.get("token")))
+
+
+@stores_bp.get("/<store_id>/rewards")
+def list_store_rewards(store_id):
+    return jsonify(rewards_controller.list_store_rewards(store_id))
+
+
+@stores_bp.post("/<store_id>/rewards")
+def create_store_reward(store_id):
+    return jsonify(rewards_controller.create_reward(store_id, request.get_json())), 201
 
 
 @stores_bp.get("/<store_id>")

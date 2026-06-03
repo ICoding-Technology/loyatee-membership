@@ -86,6 +86,7 @@ const handleVerify = async () => {
   try {
     const res = await api.verifyOtp(fullPhone.value, otpCode.value);
     await setAuthToken(res.token);
+    await setRefreshToken(res.refresh_token);
     const profile = await api.getProfile();
     await profileStore.save(profile.member);
     // New users finish onboarding at /setup-account, which then honors any

@@ -5,6 +5,7 @@ const DB_VERSION = 1;
 const STORE = "profile";
 const PROFILE_KEY = "current";
 const TOKEN_KEY = "auth-token";
+const REFRESH_KEY = "refresh-token";
 
 const openDb = () =>
   new Promise<IDBDatabase>((resolve, reject) => {
@@ -49,4 +50,13 @@ export const useProfileStore = () => ({
 
   clearToken: () =>
     tx("readwrite", (s) => s.delete(TOKEN_KEY)),
+
+  saveRefreshToken: (token: string) =>
+    tx("readwrite", (s) => s.put(token, REFRESH_KEY)),
+
+  loadRefreshToken: () =>
+    tx<string | undefined>("readonly", (s) => s.get(REFRESH_KEY)),
+
+  clearRefreshToken: () =>
+    tx("readwrite", (s) => s.delete(REFRESH_KEY)),
 });

@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen flex flex-col bg-gray-100">
-    <NavBar title="Card Detail" />
+    <NavBar :title="storeName" />
 
     <!-- Balance & Level card -->
     <div class="px-5 pt-4 pb-2">
@@ -18,7 +18,10 @@
         <div class="h-px bg-white/20 w-full my-4"></div>
 
         <!-- Validity -->
-        <div class="text-white/80 text-xs">
+        <div v-if="isExpired" class="text-red-200 text-xs font-semibold">
+          Expired on {{ validUntil }}
+        </div>
+        <div v-else class="text-white/80 text-xs">
           <span>Valid until: </span>
           <span class="font-semibold text-white">{{ validUntil }}</span>
         </div>
@@ -26,9 +29,11 @@
         <!-- Unsubscribe -->
         <button
           type="button"
-          class="mt-4 px-4 py-1.5 rounded-full border border-white/30 text-white/80 text-[10px] font-semibold hover:bg-white/10 transition"
+          class="mt-4 px-4 py-1.5 rounded-full border border-white/30 text-white/80 text-[10px] font-semibold hover:bg-white/10 transition disabled:opacity-40"
+          :disabled="unsubscribing || !membership"
+          @click="handleUnsubscribe"
         >
-          Unsubscribe
+          {{ unsubscribing ? "Leaving…" : "Unsubscribe" }}
         </button>
       </div>
     </div>
@@ -37,12 +42,10 @@
     <div class="flex-1 flex flex-col bg-gray-100 px-3 pb-3">
       <div class="flex items-center justify-between px-4 pt-4 pb-3">
         <span class="text-xs font-semibold text-slate-900">Rewards</span>
-        <span class="text-xs text-slate-400"
-          >{{ rewards.length }} available</span
-        >
+        <span class="text-xs text-slate-400">{{ rewards.length }} available</span>
       </div>
 
-      <div class="space-y-3 px-3">
+      <div v-if="rewards.length" class="space-y-3 px-3">
         <div
           v-for="reward in rewards"
           :key="reward.id"
@@ -54,68 +57,112 @@
             <UIcon name="i-heroicons-gift" class="w-5 h-5 text-[#3B82F6]" />
           </div>
           <div class="flex-1">
-            <p class="text-xs font-semibold text-slate-900">
-              {{ reward.name }}
+            <p class="text-xs font-semibold text-slate-900">{{ reward.name }}</p>
+            <p v-if="reward.description" class="text-[10px] text-slate-400">
+              {{ reward.description }}
             </p>
             <p class="mt-0.5 text-[10px] text-[#3B82F6] font-semibold font-number">
-              {{ reward.points }} pts
+              {{ reward.points_cost }} pts
             </p>
           </div>
           <button
             type="button"
-            class="flex-shrink-0 px-3 py-1.5 rounded-full bg-[#3B82F6] text-white text-[10px] font-semibold"
+            class="flex-shrink-0 px-3 py-1.5 rounded-full text-white text-[10px] font-semibold disabled:opacity-40"
+            :class="canRedeem(reward) ? 'bg-[#3B82F6]' : 'bg-slate-300'"
+            :disabled="!canRedeem(reward) || redeeming === reward.id"
+            @click="handleRedeem(reward)"
           >
-            Redeem
+            {{ redeeming === reward.id ? "…" : "Redeem" }}
           </button>
+        </div>
+      </div>
+
+      <div v-else class="px-3">
+        <div class="rounded-md border border-dashed border-gray-300 bg-white px-4 py-8 text-center">
+          <p class="text-xs text-slate-400">No rewards available yet</p>
         </div>
       </div>
     </div>
   </div>
 </template>
 
-<script setup lang="ts">
-if (!getAuthToken()) navigateTo("/login");
-</script>
+<script lang="ts" setup>
+import type { Reward } from "../composables/useApi";
 
-<script lang="ts">
-export default {
-  data() {
-    return {
-      validUntil: "12 July 2023",
-      totalBalance: 200,
-      rewards: [
-        {
-          id: 1,
-          name: "Free Coffee",
-          description: "Redeem at any outlet",
-          points: 50,
-        },
-        {
-          id: 2,
-          name: "10% Discount",
-          description: "Valid on next purchase",
-          points: 100,
-        },
-        {
-          id: 3,
-          name: "Free Delivery",
-          description: "One-time free delivery",
-          points: 80,
-        },
-        {
-          id: 4,
-          name: "Birthday Voucher",
-          description: "Special birthday treat",
-          points: 150,
-        },
-        {
-          id: 5,
-          name: "VIP Lounge Access",
-          description: "1 hour lounge access",
-          points: 200,
-        },
-      ],
-    };
-  },
+if (!getAuthToken()) navigateTo("/login");
+
+const route = useRoute();
+const api = useApi();
+const notify = useNotify();
+const { memberships, fetchProfile } = useProfile();
+
+const membershipId = computed(() => route.query.id as string | undefined);
+const membership = computed(
+  () => memberships.value.find((m) => m.id === membershipId.value) ?? null,
+);
+
+const storeName = computed(() => membership.value?.store?.name || "Card Detail");
+const totalBalance = computed(() => membership.value?.points ?? 0);
+const isExpired = computed(() => !!membership.value?.is_expired);
+
+const validUntil = computed(() => {
+  const iso = membership.value?.expires_at;
+  if (!iso) return "No expiry";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? "—"
+    : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+});
+
+const rewards = ref<Reward[]>([]);
+const redeeming = ref<string | null>(null);
+const unsubscribing = ref(false);
+
+const canRedeem = (r: Reward) => !isExpired.value && totalBalance.value >= r.points_cost;
+
+const loadRewards = async (storeId?: string) => {
+  if (!storeId) return;
+  try {
+    rewards.value = await api.getStoreRewards(storeId);
+  } catch {
+    rewards.value = [];
+  }
 };
+
+const handleRedeem = async (r: Reward) => {
+  if (redeeming.value || !membershipId.value || !canRedeem(r)) return;
+  redeeming.value = r.id;
+  try {
+    await api.redeemReward(membershipId.value, r.id);
+    await fetchProfile(); // refresh the balance
+    notify.success(`Redeemed ${r.name}.`);
+  } catch (e: any) {
+    notify.error(e?.error || "Could not redeem this reward.");
+  } finally {
+    redeeming.value = null;
+  }
+};
+
+const handleUnsubscribe = async () => {
+  if (unsubscribing.value || !membershipId.value) return;
+  if (!window.confirm(`Unsubscribe from ${storeName.value}? Your points will be lost.`)) return;
+  unsubscribing.value = true;
+  try {
+    await api.unsubscribe(membershipId.value);
+    await fetchProfile();
+    notify.success(`Unsubscribed from ${storeName.value}.`);
+    navigateTo("/home");
+  } catch (e: any) {
+    notify.error(e?.error || "Could not unsubscribe.");
+    unsubscribing.value = false;
+  }
+};
+
+// Load rewards once the membership (and its store) is known. Refresh the
+// profile first if we landed here directly / on refresh.
+watch(() => membership.value?.store?.id, (sid) => loadRewards(sid), { immediate: true });
+
+onMounted(async () => {
+  if (!memberships.value.length) await fetchProfile().catch(() => {});
+});
 </script>

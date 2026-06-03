@@ -81,6 +81,7 @@ onMounted(async () => {
 });
 
 const handleSignOut = async () => {
+  await useApi().logout(); // revoke the refresh token server-side (best-effort)
   await clearAuthToken();
   await profileStore.clear();
   navigateTo("/login");

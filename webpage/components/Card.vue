@@ -1,7 +1,7 @@
 <template>
     <div
         class="relative w-full aspect-video rounded-[15px] bg-gradient-to-br from-[#4C86E5] to-[#3B5FD4] shadow-md px-4 py-3 md:px-10 md:py-8 overflow-hidden text-white cursor-pointer"
-        @click="$router.push('/card-detail')">
+        @click="$router.push(membershipId ? { path: '/card-detail', query: { id: membershipId } } : '/card-detail')">
 
         <!-- Content -->
         <div class="relative z-10 flex h-full flex-col justify-between">
@@ -22,14 +22,17 @@
                 </div>
             </div>
 
-            <!-- Points balance (memberships) or valid date (static cards) -->
-            <div v-if="points !== null" class="mt-12 text-white/80 text-xs">
-                <span class="font-semibold text-white font-number">{{ points.toLocaleString() }}</span>
-                <span> Points</span>
-            </div>
-            <div v-else-if="validUntil" class="mt-12 text-white/80 text-xs">
-                <span>Valid until: </span>
-                <span class="font-semibold text-white">{{ validUntil }}</span>
+            <!-- Bottom row: points (left) + expiry/expired (right) -->
+            <div class="mt-12 flex items-end justify-between text-white/80 text-xs">
+                <div v-if="points !== null">
+                    <span class="font-semibold text-white font-number">{{ points.toLocaleString() }}</span>
+                    <span> Points</span>
+                </div>
+                <div v-if="expired" class="font-semibold text-red-200">Expired</div>
+                <div v-else-if="validUntil" class="text-right">
+                    <span>Valid until </span>
+                    <span class="font-semibold text-white">{{ validUntil }}</span>
+                </div>
             </div>
         </div>
     </div>
@@ -54,6 +57,14 @@ export default {
         points: {
             type: Number,
             default: null
+        },
+        expired: {
+            type: Boolean,
+            default: false
+        },
+        membershipId: {
+            type: String,
+            default: ''
         }
     }
 }

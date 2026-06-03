@@ -4,7 +4,13 @@ from arango.exceptions import CollectionCreateError, IndexCreateError
 from flask import current_app, g
 
 
-DOCUMENT_COLLECTIONS = ["members", "stores", "transactions", "transactions_archive"]
+DOCUMENT_COLLECTIONS = [
+    "members",
+    "stores",
+    "rewards",
+    "transactions",
+    "transactions_archive",
+]
 EDGE_COLLECTIONS = ["memberships"]
 
 _redis_client: "redis.Redis | None" = None
@@ -92,6 +98,9 @@ def init_db(app):
     _ensure_persistent_index(
         archive, ["membership_id", "created_at"], unique=False, sparse=False
     )
+
+    rewards = db.collection("rewards")
+    _ensure_persistent_index(rewards, ["store_id"], unique=False, sparse=False)
 
 
 def _create_collection(db, name, edge):

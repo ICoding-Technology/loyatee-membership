@@ -2,13 +2,17 @@ import hashlib
 import hmac
 import json
 import random
+import secrets
 import time
 import urllib.error
 import urllib.request
+from datetime import datetime, timedelta, timezone
+from functools import wraps
 
-from flask import current_app
+import jwt
+from flask import current_app, g, request
 
-from app.controllers.errors import BadRequest, Unauthorized
+from app.controllers.errors import BadRequest, Forbidden, Unauthorized
 from app.extensions import get_redis
 from app.models import member
 
@@ -20,26 +24,114 @@ def _otp_key(phone: str) -> str:
 
 
 def _issue_token(member_id: str) -> str:
-    # Stub token format until JWT is wired up. Profile endpoint parses the id back out.
-    return f"stub:{member_id}"
+    """Signed JWT carrying the member id as `sub`, expiring per JWT_EXP_SECONDS."""
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": member_id,
+        "iat": now,
+        "exp": now + timedelta(seconds=current_app.config["JWT_EXP_SECONDS"]),
+    }
+    return jwt.encode(
+        payload,
+        current_app.config["SECRET_KEY"],
+        algorithm=current_app.config["JWT_ALGORITHM"],
+    )
+
+
+def _refresh_key(token: str) -> str:
+    return f"refresh:{token}"
+
+
+def _issue_refresh_token(member_id: str) -> str:
+    """Opaque refresh token → member id, stored in Redis with a long TTL."""
+    token = secrets.token_urlsafe(32)
+    get_redis().setex(
+        _refresh_key(token), current_app.config["REFRESH_TTL_SECONDS"], member_id
+    )
+    return token
+
+
+def auth_tokens(member_id: str) -> dict:
+    """A fresh access JWT + refresh token pair for the given member."""
+    return {
+        "token": _issue_token(member_id),
+        "refresh_token": _issue_refresh_token(member_id),
+    }
+
+
+def refresh(data):
+    """Exchange a valid refresh token for a new access token, rotating the
+    refresh token so a leaked one is single-use."""
+    refresh_token = (data or {}).get("refresh_token")
+    if not refresh_token:
+        raise BadRequest("refresh_token is required")
+    r = get_redis()
+    member_id = r.get(_refresh_key(refresh_token))
+    if not member_id:
+        raise Unauthorized("invalid or expired refresh token")
+    r.delete(_refresh_key(refresh_token))  # rotate: invalidate the used token
+    return auth_tokens(member_id)
+
+
+def logout(data):
+    """Revoke a refresh token (best-effort) on sign-out."""
+    refresh_token = (data or {}).get("refresh_token")
+    if refresh_token:
+        get_redis().delete(_refresh_key(refresh_token))
+    return {"message": "signed out"}
 
 
 def parse_token(token: str):
-    if not token or not token.startswith("stub:"):
+    """Verify a JWT and return its member id (`sub`), or None if invalid/expired."""
+    if not token:
         return None
-    member_id = token.split(":", 1)[1]
-    return member_id or None
+    try:
+        payload = jwt.decode(
+            token,
+            current_app.config["SECRET_KEY"],
+            algorithms=[current_app.config["JWT_ALGORITHM"]],
+        )
+    except jwt.PyJWTError:
+        return None
+    return payload.get("sub") or None
 
 
 def member_id_from_request():
     """Resolve the current member id from the Authorization bearer token."""
-    from flask import request
-
     header = request.headers.get("Authorization", "")
     if not header.startswith("Bearer "):
         return None
     token = header[len("Bearer "):].strip()
     return parse_token(token) if token else None
+
+
+def require_auth(fn):
+    """Require a valid bearer JWT; stash the member id on `g.member_id`."""
+
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        member_id = member_id_from_request()
+        if not member_id:
+            raise Unauthorized("authentication required")
+        g.member_id = member_id
+        return fn(*args, **kwargs)
+
+    return wrapper
+
+
+def require_self(fn):
+    """Require the route's `<member_id>` to match the authenticated member.
+
+    Stack below @require_auth, on routes that take a `member_id` path arg.
+    """
+
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if kwargs.get("member_id") != g.get("member_id"):
+            raise Forbidden("not allowed to access this resource")
+        return fn(*args, **kwargs)
+
+    return wrapper
 
 
 def request_otp(data):
@@ -120,7 +212,7 @@ def verify_otp(data):
         created = member.create({"phone": phone, "signin_type": "phone"})
         return {
             "message": "verified",
-            "token": _issue_token(created["id"]),
+            **auth_tokens(created["id"]),
             "member": created,
             "is_new": True,
         }
@@ -128,7 +220,7 @@ def verify_otp(data):
     serialized = member.serialize(existing)
     return {
         "message": "verified",
-        "token": _issue_token(serialized["id"]),
+        **auth_tokens(serialized["id"]),
         "member": serialized,
         "is_new": False,
     }
@@ -171,14 +263,14 @@ def google_signin(data):
         })
         return {
             "message": "verified",
-            "token": _issue_token(created["id"]),
+            **auth_tokens(created["id"]),
             "member": created,
         }
 
     serialized = member.serialize(existing)
     return {
         "message": "verified",
-        "token": _issue_token(serialized["id"]),
+        **auth_tokens(serialized["id"]),
         "member": serialized,
     }
 
@@ -257,13 +349,13 @@ def telegram_signin(data):
         })
         return {
             "message": "verified",
-            "token": _issue_token(created["id"]),
+            **auth_tokens(created["id"]),
             "member": created,
         }
 
     serialized = member.serialize(existing)
     return {
         "message": "verified",
-        "token": _issue_token(serialized["id"]),
+        **auth_tokens(serialized["id"]),
         "member": serialized,
     }

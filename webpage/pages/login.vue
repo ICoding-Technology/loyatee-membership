@@ -135,6 +135,7 @@ const initGoogle = () => {
       try {
         const res = await api.signInWithGoogle({ access_token: resp.access_token });
         await setAuthToken(res.token);
+        await setRefreshToken(res.refresh_token);
         const profile = await api.getProfile();
         await profileStore.save(profile.member);
         router.push(authRedirect.consume() || "/home");
@@ -164,6 +165,7 @@ const initTelegram = () => {
     try {
       const res = await api.signInWithTelegram(user);
       await setAuthToken(res.token);
+      await setRefreshToken(res.refresh_token);
       const profile = await api.getProfile();
       await profileStore.save(profile.member);
       router.push(authRedirect.consume() || "/home");
